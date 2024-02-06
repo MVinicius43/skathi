@@ -1,11 +1,19 @@
 import styled from 'styled-components'
 
-export const Container = styled.div`
-  display: flex;
+type ContainerProps = {
+  display: boolean
+}
+
+export const Container = styled.div<ContainerProps>`
+  display: ${({ display }) => {
+    return display ? 'none' : 'flex'
+  }};
   align-items: center;
   justify-content: center;
+  flex-direction: column;
 
   height: 100vh;
+  gap: 10px;
 `
 
 export const ImagesBoxContainer = styled.div`
@@ -17,7 +25,6 @@ export const ImagesBoxContainer = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
 
   font-size: 13px;
 `
@@ -27,8 +34,9 @@ export const ImagesRow = styled.div`
   align-items: center;
   justify-content: space-between;
 
-  width: 380px;
-  padding: 10px;
+  width: 500px;
+  height: 108px;
+  padding: 15px;
   border-bottom: 1px solid #ffffff;
 `
 
@@ -36,14 +44,31 @@ export const ImageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  background-color: #ffffff;
+  padding: 6px;
+  background: #ffffff;
   border-radius: 8px;
   border: 2px solid #808080;
 
   > img {
-    width: 80px;
-    height: 80px;
-    mix-blend-mode: multiply;
+    width: 70px;
+    height: 70px;
+    opacity: 0.25;
   }
+`
+
+export const ButtonsContainer = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+`
+
+export const DownloadButton = styled.button`
+  padding: 10px;
+  border: 2px solid #ffffff;
+  border-radius: 5px;
+  font-weight: bold;
+  color: #6d6d6d;
+  background: #d5d5d5;
+
+  cursor: pointer;
 `
