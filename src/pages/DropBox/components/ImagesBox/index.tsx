@@ -42,26 +42,33 @@ export function ImagesBox({ paths }: ImagesBoxProps) {
   async function downloadImages() {
     const zip = new JSZip()
     let count = 0
-    const zipFilename = 'Pictures.zip'
+    const zipFilename = 'Imagens.zip'
 
     pathsBackgroundRemoved.forEach(function (url, i) {
       let filename = pathsBackgroundRemoved[i]
       filename = filename
-        .replace(/[\/\*\|\:\<\>\?\"\\]/gi, '')
+        .replace(/[\\/\\*\\|\\:\\<\\>\\?\\"\\]/gi, '')
         .replace('httpsi.imgur.com', '')
 
-      JSZipUtils.getBinaryContent(url, function (err, data) {
-        if (err) {
-          throw err
-        }
-        zip.file(filename, data, { binary: true })
-        count++
-        if (count === pathsBackgroundRemoved.length) {
-          zip.generateAsync({ type: 'blob' }).then(function (content) {
-            saveAs(content, zipFilename)
-          })
-        }
-      })
+      JSZipUtils.getBinaryContent(
+        url,
+        function (err: Error, data: ArrayBuffer) {
+          if (err) {
+            throw err.message
+          }
+          zip.file(filename, data, { binary: true })
+          count++
+          if (count === pathsBackgroundRemoved.length) {
+            zip
+              .generateAsync({
+                type: 'blob',
+              })
+              .then(function (content) {
+                saveAs(content, zipFilename)
+              })
+          }
+        },
+      )
     })
   }
 
