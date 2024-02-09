@@ -1,92 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { X } from '@phosphor-icons/react'
+import { saveAs } from 'file-saver'
+import JSZip from 'jszip'
+import JSZipUtils from 'jszip-utils'
+import imglyRemoveBackground from '@imgly/background-removal'
+import CircularProgress from '@mui/joy/CircularProgress'
 
 import {
   ButtonsContainer,
+  CancelButton,
   Container,
   DownloadButton,
   ImageContainer,
   ImagesBoxContainer,
   ImagesRow,
 } from './style'
-import { http } from '../../../../api/http'
-
-import { X } from '@phosphor-icons/react'
-import { Buffer } from 'buffer'
-import { CircularProgressbar } from 'react-circular-progressbar'
-import 'react-circular-progressbar/dist/styles.css'
-import { DropBox } from '../..'
 
 type ImagesBoxProps = {
   paths: string[]
 }
 
 export function ImagesBox({ paths }: ImagesBoxProps) {
+  const [pathsForBackgroundRemoved, setPathsForBackgroundRemoved] = useState<
+    string[]
+  >([])
   const [pathsBackgroundRemoved, setPathsBackgroundRemoved] = useState<
     string[]
   >([])
-  const [progress, setProgress] = useState<number>(0)
-
-  async function fetchImgBackgroundRemoved() {
-    await http
-      .post(
-        '/removebg',
-        {
-          image_file_b64: '',
-          image_url: 'https://www.remove.bg/example-hd.jpg',
-          size: 'preview',
-          type: 'auto',
-          type_level: '1',
-          format: 'auto',
-          roi: '0% 0% 100% 100%',
-          crop: false,
-          crop_margin: '0',
-          scale: 'original',
-          position: 'original',
-          channels: 'rgba',
-          add_shadow: false,
-          semitransparency: true,
-          bg_color: '',
-          bg_image_url: '',
-        },
-        {
-          onUploadProgress: (e) => {
-            if (e.total) {
-              const progress = Number(Math.round((e.loaded * 100) / e.total))
-            }
-          },
-        },
-      )
-      .then((data) => {
-        console.log(
-          'data:image/png;base64,' +
-            Buffer.from(data.data, 'binary').toString('base64'),
-        )
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  }
-
-  async function fetchTest() {
-    let interval: NodeJS.Timeout
-
-    await new Promise((resolve) => {
-      let i = 20
-
-      interval = setInterval(() => {
-        setProgress(i)
-        i = i + 20
-      }, 1000)
-      setTimeout(resolve, 5000)
-    })
-      .then(() => {
-        setPathsBackgroundRemoved(paths)
-        clearInterval(interval)
-      })
-      .catch((e) => {
-        console.log(e)
-      })
-  }
 
   function removeImageFromPath(image: string) {
     const newImagesList = [...pathsBackgroundRemoved]
@@ -94,41 +34,77 @@ export function ImagesBox({ paths }: ImagesBoxProps) {
     setPathsBackgroundRemoved(
       newImagesList.filter((imageList) => imageList !== image),
     )
+    setPathsForBackgroundRemoved(
+      newImagesList.filter((imageList) => imageList !== image),
+    )
   }
 
+  async function downloadImages() {
+    const zip = new JSZip()
+    let count = 0
+    const zipFilename = 'Pictures.zip'
+
+    pathsBackgroundRemoved.forEach(function (url, i) {
+      let filename = pathsBackgroundRemoved[i]
+      filename = filename
+        .replace(/[\/\*\|\:\<\>\?\"\\]/gi, '')
+        .replace('httpsi.imgur.com', '')
+
+      JSZipUtils.getBinaryContent(url, function (err, data) {
+        if (err) {
+          throw err
+        }
+        zip.file(filename, data, { binary: true })
+        count++
+        if (count === pathsBackgroundRemoved.length) {
+          zip.generateAsync({ type: 'blob' }).then(function (content) {
+            saveAs(content, zipFilename)
+          })
+        }
+      })
+    })
+  }
+
+  const fetchRemovedBackground = useCallback(() => {
+    const pathsRemovedBg: string[] = []
+
+    Promise.all(
+      pathsForBackgroundRemoved.map(async (path) => {
+        await imglyRemoveBackground(path).then((blob: Blob) => {
+          pathsRemovedBg.push(URL.createObjectURL(blob))
+          return URL.createObjectURL(blob)
+        })
+      }),
+    ).then(() => {
+      setPathsBackgroundRemoved(pathsRemovedBg)
+    })
+  }, [pathsForBackgroundRemoved])
+
   useEffect(() => {
-    // fetchImgBackgroundRemoved()
-    fetchTest()
-  }, [])
+    fetchRemovedBackground()
+  }, [fetchRemovedBackground])
+
+  useEffect(() => {
+    if (pathsForBackgroundRemoved.length === 0) {
+      setPathsForBackgroundRemoved(paths)
+    }
+  }, [paths, pathsForBackgroundRemoved.length])
 
   return (
     <>
-      <Container
-        display={pathsBackgroundRemoved.length === 0 && progress === 100}
-      >
+      <Container>
         <ImagesBoxContainer>
-          {pathsBackgroundRemoved.length === 0 && progress !== 100
+          {pathsBackgroundRemoved.length === 0
             ? paths.map((path) => {
                 return (
                   <ImagesRow key={path}>
                     <ImageContainer>
                       <img src={path} alt="uploaded image" />
                     </ImageContainer>
-                    <CircularProgressbar
-                      styles={{
-                        root: {
-                          width: 42,
-                          color: 'ButtonFace',
-                        },
-                        path: { stroke: '#808080' },
-                        text: {
-                          fontWeight: 'bold',
-                          fill: '#000',
-                        },
-                      }}
-                      strokeWidth={10}
-                      text={`${progress}%`}
-                      value={progress}
+                    <CircularProgress
+                      variant="soft"
+                      size="sm"
+                      color="neutral"
                     />
                   </ImagesRow>
                 )
@@ -151,10 +127,17 @@ export function ImagesBox({ paths }: ImagesBoxProps) {
               })}
         </ImagesBoxContainer>
         <ButtonsContainer>
-          <DownloadButton>Download</DownloadButton>
+          <CancelButton onClick={() => window.location.reload()}>
+            Cancelar
+          </CancelButton>
+          <DownloadButton
+            disabled={pathsBackgroundRemoved.length === 0}
+            onClick={() => downloadImages()}
+          >
+            Download
+          </DownloadButton>
         </ButtonsContainer>
       </Container>
-      {pathsBackgroundRemoved.length === 0 && progress === 100 && <DropBox />}
     </>
   )
 }

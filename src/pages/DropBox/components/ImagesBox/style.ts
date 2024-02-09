@@ -1,13 +1,7 @@
 import styled from 'styled-components'
 
-type ContainerProps = {
-  display: boolean
-}
-
-export const Container = styled.div<ContainerProps>`
-  display: ${({ display }) => {
-    return display ? 'none' : 'flex'
-  }};
+export const Container = styled.div`
+  display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -52,7 +46,6 @@ export const ImageContainer = styled.div`
   > img {
     width: 70px;
     height: 70px;
-    opacity: 0.25;
   }
 `
 
@@ -60,6 +53,7 @@ export const ButtonsContainer = styled.div`
   width: 100%;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 `
 
 export const DownloadButton = styled.button`
@@ -69,6 +63,22 @@ export const DownloadButton = styled.button`
   font-weight: bold;
   color: #6d6d6d;
   background: #d5d5d5;
+
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.2;
+  }
+`
+
+export const CancelButton = styled.button`
+  padding: 10px;
+  border: 2px solid #ffffff;
+  border-radius: 5px;
+  font-weight: bold;
+  color: #d5d5d5;
+  background: transparent;
 
   cursor: pointer;
 `

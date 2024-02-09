@@ -14,7 +14,19 @@ export function DropBox() {
   const [paths, setPaths] = useState<string[]>([])
 
   const onDrop = useCallback((files: FileWithPath[]) => {
-    setPaths(files.map((file) => URL.createObjectURL(file)))
+    const b64Files: string[] = []
+
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onloadend = function () {
+        const base64data = reader.result
+        if (base64data && typeof base64data === 'string') {
+          b64Files.push(base64data)
+        }
+        setPaths(b64Files)
+      }
+    })
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
